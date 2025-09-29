@@ -1,18 +1,36 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
 import { InputForm } from './components/InputForm';
 import { OutputDisplay } from './components/OutputDisplay';
 import { generateVideoStrategy, generateViralTopic } from './services/geminiService';
-import { type GeneratedContent, VideoType } from './types';
+import { type GeneratedContent, type VideoStyle, videoStyles, type Platform, platforms, platformDefaults } from './types';
 
 const App: React.FC = () => {
   const [topic, setTopic] = useState<string>('');
-  const [videoType, setVideoType] = useState<VideoType>(VideoType.AI_Short);
-  const [length, setLength] = useState<number>(1);
+  const [videoStyle, setVideoStyle] = useState<VideoStyle>(videoStyles[0]);
+  const [platform, setPlatform] = useState<Platform>(platforms[0]);
+  const [isManualDuration, setIsManualDuration] = useState<boolean>(true);
+  const [videoDuration, setVideoDuration] = useState<number>(platformDefaults[platforms[0]].duration);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGeneratingTopic, setIsGeneratingTopic] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
+
+  // Effect 1: Always reset the duration when the platform changes.
+  // This provides a sensible default for the new platform, whether in manual or locked mode.
+  useEffect(() => {
+    setVideoDuration(platformDefaults[platform].duration);
+  }, [platform]);
+
+  // Effect 2: If manual control is turned off, lock the duration to the current platform's default.
+  // This runs when the toggle is switched to OFF, or if the platform changes while locked.
+  // It does NOT run when toggling back to manual, preserving the current state.
+  useEffect(() => {
+    if (!isManualDuration) {
+      setVideoDuration(platformDefaults[platform].duration);
+    }
+  }, [isManualDuration, platform]);
+
 
   const handleGenerateTopic = useCallback(async () => {
     setIsGeneratingTopic(true);
@@ -38,7 +56,7 @@ const App: React.FC = () => {
     setGeneratedContent(null);
 
     try {
-      const result = await generateVideoStrategy({ topic, videoType, length });
+      const result = await generateVideoStrategy({ topic, videoStyle, platform, videoDuration });
       setGeneratedContent(result);
     } catch (e) {
       console.error(e);
@@ -46,7 +64,7 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [topic, videoType, length]);
+  }, [topic, videoStyle, platform, videoDuration]);
 
   return (
     <div className="min-h-screen bg-stone-100 font-sans text-stone-800 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-stone-50 to-stone-100">
@@ -56,10 +74,14 @@ const App: React.FC = () => {
           <InputForm
             topic={topic}
             setTopic={setTopic}
-            videoType={videoType}
-            setVideoType={setVideoType}
-            length={length}
-            setLength={setLength}
+            videoStyle={videoStyle}
+            setVideoStyle={setVideoStyle}
+            platform={platform}
+            setPlatform={setPlatform}
+            isManualDuration={isManualDuration}
+            setIsManualDuration={setIsManualDuration}
+            videoDuration={videoDuration}
+            setVideoDuration={setVideoDuration}
             isLoading={isLoading}
             onGenerate={handleGenerate}
             isGeneratingTopic={isGeneratingTopic}

@@ -55,7 +55,7 @@ export const OutputDisplay: React.FC<OutputDisplayProps> = ({ isLoading, content
       <OutputCard title="Caption" content={content.caption} />
       <OutputCard
         title="Hashtags"
-        content={content.hashtags.join(' ')}
+        content={content.hashtags}
       />
     </div>
   );
